@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Ory Kratos (Optional - for advanced authentication)
+  kratos-migrate:
+    image: oryd/kratos:v1.0.0
+    environment:
+      - DSN=memory
+    volumes:
+      - type: volume
+        source: kratos-sqlite
+        target: /var/lib/sqlite
+    command: migrate sql -e --yes
+    restart: on-failure
+
+  kratos:
+    image: oryd/kratos:v1.0.0
+    ports:
+      - "4433:4433" # Public
+      - "4434:4434" # Admin
+    environment:
+      - DSN=memory
+    volumes:
+      - type: volume
+        source: kratos-sqlite
+        target: /var/lib/sqlite
+      - ./kratos:/etc/config/kratos
+    command: serve -c /etc/config/kratos/kratos.yml
+    depends_on:
+      - kratos-migrate
+    restart: unless-stopped
+
+volumes:
+  kratos-sqlite:
+
