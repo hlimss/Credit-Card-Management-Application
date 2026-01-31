@@ -41,3 +41,11 @@ Thumbs.db
 build/
 *.build.json
 
+# Configuration files with secrets
+CreditCardManagement.API/appsettings.json
+CreditCardManagement.API/appsettings.Development.json
+CreditCardManagement.API/appsettings.*.json
+!CreditCardManagement.API/appsettings.example.json
+
+# Data Protection Keys
+CreditCardManagement.API/DataProtection-Keys/
