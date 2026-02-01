@@ -1,11 +1,14 @@
 # Setup Guide - Credit Card Management Application
 
+**Version**: 2.0.0  
+**Last Updated**: 2025
+
 ## Quick Start
 
 ### Prerequisites Installation
 
-1. **Install .NET 8.0 SDK**
-   - Download from: https://dotnet.microsoft.com/download/dotnet/8.0
+1. **Install .NET 9.0 SDK**
+   - Download from: https://dotnet.microsoft.com/download/dotnet/9.0
    - Verify installation: `dotnet --version`
 
 2. **Install Node.js 18+**
@@ -94,8 +97,11 @@
 
 3. **Open browser**
    - Navigate to: http://localhost:5173
-   - Register a new account
-   - Login and add credit cards
+   - Register a new account or use OAuth (Google/Facebook)
+   - Login and explore the new governmental interface
+   - Add credit cards with confirmation codes
+   - Access settings to manage profile and activate/deactivate cards
+   - Use the sidebar to access all banking features
 
 ## Troubleshooting
 
@@ -166,6 +172,25 @@
 
 2. **Deploy `dist` folder** to your web server (IIS, Nginx, etc.)
 
+## New Features in v2.0.0
+
+### User Interface
+- **Governmental Design**: Professional institutional interface
+- **Sidebar Navigation**: Retractable sidebar with all features
+- **Live Currency Rates**: Real-time exchange rates in header
+- **Notification System**: Global notifications with unread count
+- **Settings Page**: Profile management and card activation
+
+### Security Enhancements
+- **Transaction Confirmation Codes**: Secure transaction system
+- **Card Activation**: Control card usage with activation toggle
+- **Enhanced Validation**: Improved error messages with tips
+
+### Banking Features
+- **Dedicated Transactions Page**: Comprehensive transaction management
+- **Automatic Balance Updates**: Real-time balance tracking
+- **Transaction Blocking**: Inactive cards cannot be used
+
 ## Security Notes
 
 ⚠️ **Important for Production**:
@@ -175,6 +200,7 @@
 - Implement rate limiting
 - Add input sanitization
 - Use environment variables for sensitive data
+- Configure OAuth credentials (Google, Facebook) in `appsettings.json`
 
 ## Additional Resources
 
