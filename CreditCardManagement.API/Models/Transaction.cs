@@ -37,6 +37,9 @@ public class Transaction
     [StringLength(100)]
     public string? Location { get; set; } // City, Country, or coordinates
     
+    [StringLength(10)]
+    public string? ConfirmationCode { get; set; } // Code de confirmation utilisé pour cette transaction
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

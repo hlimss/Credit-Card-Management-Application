@@ -123,28 +123,97 @@
   margin-top: 0.125rem;
 }
 
-/* Compact version for navbar */
+/* Compact version for navbar - Version institutionnelle transparente */
 .token2pay-logo.compact .logo-container {
-  padding: 0.75rem 1rem;
-  gap: 1rem;
+  padding: 0;
+  gap: 0.5rem;
   background: transparent;
   box-shadow: none;
+  border-radius: 0;
 }
 
 .token2pay-logo.compact .logo-graphic {
-  width: 40px;
-  height: 40px;
+  width: 20px;
+  height: 20px;
+  opacity: 0.85;
 }
 
-.token2pay-logo.compact .main-headline {
-  font-size: 1rem;
+.token2pay-logo.compact .graphic-line {
+  background: rgba(30, 58, 138, 0.6);
+  height: 1.5px;
 }
 
-.token2pay-logo.compact .brand-name {
-  font-size: 1.25rem;
+.token2pay-logo.compact .line-1 {
+  width: 12px;
+  bottom: 3px;
 }
 
-.token2pay-logo.compact .tagline {
-  font-size: 0.75rem;
+.token2pay-logo.compact .line-2 {
+  width: 10px;
+  bottom: 8px;
+  left: 2px;
+}
+
+.token2pay-logo.compact .line-3 {
+  width: 8px;
+  bottom: 13px;
+  left: 4px;
+}
+
+.token2pay-logo.compact .line-4 {
+  width: 6px;
+  bottom: 18px;
+  left: 6px;
+}
+
+.token2pay-logo.compact .logo-text {
+  display: none; /* Cacher le texte dans la version compacte */
+}
+
+/* Version institutionnelle - très petit et transparent */
+.token2pay-logo.logo-institutional .logo-container {
+  padding: 0;
+  gap: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.token2pay-logo.logo-institutional .logo-graphic {
+  width: 16px;
+  height: 16px;
+  opacity: 0.75;
+}
+
+.token2pay-logo.logo-institutional .graphic-line {
+  background: rgba(30, 58, 138, 0.5);
+  height: 1px;
+}
+
+.token2pay-logo.logo-institutional .line-1 {
+  width: 10px;
+  bottom: 2px;
+}
+
+.token2pay-logo.logo-institutional .line-2 {
+  width: 8px;
+  bottom: 6px;
+  left: 1px;
+}
+
+.token2pay-logo.logo-institutional .line-3 {
+  width: 6px;
+  bottom: 10px;
+  left: 2px;
+}
+
+.token2pay-logo.logo-institutional .line-4 {
+  width: 5px;
+  bottom: 14px;
+  left: 3px;
+}
+
+.token2pay-logo.logo-institutional .logo-text {
+  display: none;
 }
 </style>

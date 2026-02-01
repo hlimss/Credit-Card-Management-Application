@@ -14,6 +14,7 @@ public class TransactionDto
     public DateTime TransactionDate { get; set; }
     public string TransactionType { get; set; } = "Expense";
     public string? Location { get; set; }
+    public string? ConfirmationCode { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -47,6 +48,10 @@ public class CreateTransactionDto
 
     [StringLength(100)]
     public string? Location { get; set; }
+
+    [Required(ErrorMessage = "Confirmation code is required")]
+    [StringLength(10, MinimumLength = 4, ErrorMessage = "Confirmation code must be between 4 and 10 characters")]
+    public string ConfirmationCode { get; set; } = string.Empty;
 }
 
 public class UpdateTransactionDto

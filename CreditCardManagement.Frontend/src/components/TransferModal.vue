@@ -160,7 +160,13 @@ const handleSubmit = async () => {
 
   try {
     await bankTransferService.create(form.value)
-    emit('success')
+    emit('success', {
+      amount: form.amount,
+      currency: form.currency,
+      beneficiaryName: form.beneficiaryName,
+      toAccount: form.toAccount,
+      transferType: form.transferType
+    })
     close()
   } catch (err) {
     error.value = err.response?.data?.message || 'Erreur lors du virement'

@@ -38,6 +38,9 @@ public class CreditCard
     [Column(TypeName = "decimal(18,2)")]
     public decimal? Balance { get; set; } // Card balance or limit amount
     
+    [StringLength(10)]
+    public string? ConfirmationCode { get; set; } // Code de confirmation pour les transactions (ex: 1234)
+    
     public bool IsActive { get; set; } = true; // For temporary blocking
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

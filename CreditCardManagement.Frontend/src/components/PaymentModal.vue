@@ -219,7 +219,13 @@ const handleSubmit = async () => {
       creditCardId: form.value.creditCardId ? form.value.creditCardId : null
     }
     await paymentService.create(paymentData)
-    emit('success')
+    emit('success', {
+      amount: form.amount,
+      currency: form.currency,
+      merchantName: form.merchantName,
+      paymentType: form.paymentType,
+      referenceNumber: form.referenceNumber
+    })
     close()
   } catch (err) {
     error.value = err.response?.data?.message || 'Erreur lors du paiement'

@@ -243,14 +243,14 @@ import { computed } from 'vue'
 
 .statements-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
 }
 
 .statement-card {
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 10px;
+  padding: 1.25rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -272,7 +272,7 @@ import { computed } from 'vue'
 
 .statement-card-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #333;
 }
 

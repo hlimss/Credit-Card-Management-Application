@@ -1,33 +1,16 @@
 <template>
-  <div id="app" class="min-h-screen">
-    <nav v-if="authStore.isAuthenticated" class="modern-nav">
-      <div class="nav-content">
-        <router-link to="/" class="nav-logo">
-          <Token2PayLogo class="compact" />
-        </router-link>
-        <div class="nav-actions">
-          <div class="user-info">
-            <span class="user-greeting">
-              Bonjour {{ authStore.userFirstName ? `Mr. ${authStore.userFirstName}` : authStore.user?.email }}
-            </span>
-          </div>
-          <button
-            @click="handleLogout"
-            class="logout-btn"
-          >
-            <span>🚪</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-    </nav>
+  <div id="app" class="min-h-screen bg-background flex flex-col">
+    <!-- Skip Link pour accessibilité -->
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
 
-    <!-- Bank Sidebar -->
-    <BankSidebar 
+    <!-- Header Gouvernemental -->
+    <GovernmentHeader v-if="authStore.isAuthenticated" />
+
+    <!-- Sidebar Gouvernementale -->
+    <GovernmentSidebar 
       v-if="authStore.isAuthenticated"
-      @pack-selected="handlePackSelected"
       @feature-clicked="handleFeatureClick"
-      @quick-action="handleQuickAction"
+      @sidebar-state-changed="handleSidebarStateChange"
     />
 
     <!-- Transfer Modal -->
@@ -46,33 +29,104 @@
       @success="handlePaymentSuccess"
     />
 
-    <main :class="{ 'with-sidebar': authStore.isAuthenticated }">
+    <!-- Main Content -->
+    <main 
+      id="main-content"
+      class="main-content flex-1 transition-all duration-300"
+      :class="{ 
+        'main-with-sidebar': authStore.isAuthenticated,
+        'main-sidebar-collapsed': sidebarState.isCollapsed,
+        'main-sidebar-mobile-open': sidebarState.isMobileOpen
+      }"
+      :style="mainContentStyle"
+    >
       <router-view />
     </main>
+
+    <!-- Footer -->
+    <GovernmentFooter 
+      v-if="authStore.isAuthenticated" 
+      :is-collapsed="sidebarState.isCollapsed"
+      :is-mobile-open="sidebarState.isMobileOpen"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
-import Token2PayLogo from './components/Token2PayLogo.vue'
-import BankSidebar from './components/BankSidebar.vue'
+import GovernmentHeader from './components/GovernmentHeader.vue'
+import GovernmentSidebar from './components/GovernmentSidebar.vue'
+import GovernmentFooter from './components/GovernmentFooter.vue'
 import TransferModal from './components/TransferModal.vue'
 import PaymentModal from './components/PaymentModal.vue'
 import { useCreditCardStore } from './stores/creditCard'
+import { useNotificationStore } from './stores/notification'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const creditCardStore = useCreditCardStore()
+const notificationStore = useNotificationStore()
 
 const showTransferModal = ref(false)
 const showPaymentModal = ref(false)
+
+const sidebarState = ref({
+  isOpen: false,
+  isCollapsed: false,
+  isMobileOpen: false
+})
+
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+
+const updateWindowWidth = () => {
+  if (typeof window !== 'undefined') {
+    windowWidth.value = window.innerWidth
+  }
+}
+
+const mainContentStyle = computed(() => {
+  if (!authStore.isAuthenticated) return {}
+  
+  // Sur mobile, le sidebar est en overlay, donc pas de décalage
+  if (windowWidth.value < 1024) {
+    return {}
+  }
+  
+  // Sur desktop, décaler selon l'état collapsed/expanded
+  if (sidebarState.value.isCollapsed) {
+    return { marginLeft: '72px' } // Largeur sidebar collapsed
+  } else {
+    return { marginLeft: '256px' } // Largeur sidebar expanded
+  }
+})
+
+
+function handleSidebarStateChange(state) {
+  sidebarState.value = {
+    isOpen: state.isOpen,
+    isCollapsed: state.isCollapsed,
+    isMobileOpen: state.isOpen && !state.isCollapsed && window.innerWidth < 1024
+  }
+}
 
 onMounted(async () => {
   // Load user details if authenticated
   if (authStore.isAuthenticated && !authStore.userFirstName) {
     await authStore.fetchUserDetails()
+  }
+  
+  // Écouter les changements de taille de fenêtre
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateWindowWidth)
+    updateWindowWidth()
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', updateWindowWidth)
   }
 })
 
@@ -81,53 +135,30 @@ const handleLogout = async () => {
   router.push('/login')
 }
 
-const handlePackSelected = async (data) => {
-  const { bank, pack } = data
-  
-  if (!pack) {
-    alert('Veuillez sélectionner un pack de cartes')
-    return
-  }
-
-  // Demander confirmation
-  const confirmMessage = `Voulez-vous créer le pack "${pack.name}" de ${banks.find(b => b.id === bank)?.name}?\n\n${pack.description}\n\nFonctionnalités: ${pack.features.join(', ')}`
-  
-  if (!confirm(confirmMessage)) {
-    return
-  }
-
-  try {
-    // Importer le service de packs de cartes
-    const { cardPackService } = await import('./services/cardPackService')
-    
-    // Obtenir le nom complet de l'utilisateur
-    const userFullName = authStore.userFullName || 
-                        `${authStore.userFirstName || ''} ${authStore.userLastName || ''}`.trim() ||
-                        authStore.userEmail ||
-                        authStore.user?.email ||
-                        'Cardholder Name'
-
-    // Appliquer le pack
-    const result = await cardPackService.applyCardPack(bank, pack.id, userFullName)
-    
-    if (result.success) {
-      alert(`✅ ${result.message}\n\nPack: ${result.pack}\nCartes créées: ${result.cards.length}`)
-      // Recharger les cartes si on est sur la page d'accueil
-      if (router.currentRoute.value.path === '/') {
-        window.location.reload()
-      } else {
-        router.push('/')
-      }
-    }
-  } catch (error) {
-    console.error('Erreur lors de l\'application du pack:', error)
-    alert(`❌ Erreur: ${error.message || 'Impossible de créer les cartes du pack'}`)
-  }
-}
 
 const handleFeatureClick = (feature) => {
+  if (!feature || !feature.id) return
+  
   // Navigation ou ouverture de modals selon la fonctionnalité
   switch (feature.id) {
+    case 'dashboard':
+      router.push('/')
+      break
+    case 'cards':
+      router.push('/cards')
+      break
+    case 'transactions':
+      router.push('/transactions')
+      break
+    case 'analytics':
+      router.push('/analytics')
+      break
+    case 'statements':
+      router.push('/statements')
+      break
+    case 'loans':
+      router.push('/loans')
+      break
     case 'transfers':
       // Charger les cartes si nécessaire
       if (creditCardStore.cards.length === 0) {
@@ -142,172 +173,74 @@ const handleFeatureClick = (feature) => {
       }
       showPaymentModal.value = true
       break
-    case 'loans':
-      router.push('/loans')
-      break
-    case 'investments':
-      router.push('/analytics')
-      break
-    case 'insurance':
-      alert('🛡️ Fonctionnalité Assurances\n\nCette fonctionnalité sera bientôt disponible!')
-      break
-    case 'statements':
-      router.push('/statements')
-      break
-    case 'support':
-      alert('📞 Support Client\n\nContactez-nous à: support@tokenpay.com\nTél: +212 XXX XXX XXX')
-      break
     default:
-      console.log('Fonctionnalité:', feature)
-  }
-}
-
-const handleTransferSuccess = () => {
-  // Recharger les cartes pour mettre à jour les balances
-  creditCardStore.fetchCards()
-  alert('✅ Virement effectué avec succès!')
-}
-
-const handlePaymentSuccess = () => {
-  // Recharger les cartes pour mettre à jour les balances
-  creditCardStore.fetchCards()
-  alert('✅ Paiement effectué avec succès!')
-}
-
-const handleQuickAction = (action) => {
-  switch (action.id) {
-    case 'add-card':
-      // Naviguer vers la page d'accueil et déclencher l'ouverture du modal
-      if (router.currentRoute.value.path !== '/') {
-        router.push('/')
+      // Si c'est une route, naviguer
+      if (feature.path) {
+        router.push(feature.path)
       }
-      // Émettre un événement personnalisé pour ouvrir le modal
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('open-add-card-modal'))
-      }, 100)
-      break
-    case 'view-cards':
-      router.push('/')
-      break
-    case 'transactions':
-      router.push('/')
-      // Optionnel: scroll vers la section des transactions
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('scroll-to-transactions'))
-      }, 100)
-      break
-    case 'analytics':
-      router.push('/')
-      // Optionnel: scroll vers la section analytics
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('scroll-to-analytics'))
-      }, 100)
-      break
-    default:
-      console.log('Action rapide:', action)
   }
 }
 
-// Liste des banques pour le handler
-const banks = [
-  { id: 'attijari', name: 'Attijariwafa Bank' },
-  { id: 'bmce', name: 'BMCE Bank' },
-  { id: 'cih', name: 'CIH Bank' },
-  { id: 'bmci', name: 'BMCI' },
-  { id: 'credit', name: 'Crédit du Maroc' },
-  { id: 'sgmb', name: 'SGMB' },
-  { id: 'banque', name: 'Banque Populaire' }
-]
+const handleTransferSuccess = (transferData) => {
+  // Recharger les cartes pour mettre à jour les balances
+  creditCardStore.fetchCards()
+  
+  // Ajouter une notification
+  if (transferData) {
+    const formatAmount = (amount, currency) => {
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currency || 'MAD'
+      }).format(amount)
+    }
+    
+    notificationStore.addNotification({
+      type: 'success',
+      icon: '💸',
+      title: 'Virement effectué',
+      message: `Virement de ${formatAmount(transferData.amount, transferData.currency)} vers ${transferData.beneficiaryName || transferData.toAccount} effectué avec succès`
+    })
+  }
+}
+
+const handlePaymentSuccess = (paymentData) => {
+  // Recharger les cartes pour mettre à jour les balances
+  creditCardStore.fetchCards()
+  
+  // Ajouter une notification
+  if (paymentData) {
+    const formatAmount = (amount, currency) => {
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currency || 'MAD'
+      }).format(amount)
+    }
+    
+    notificationStore.addNotification({
+      type: 'success',
+      icon: '💳',
+      title: 'Paiement effectué',
+      message: `Paiement de ${formatAmount(paymentData.amount, paymentData.currency)} pour ${paymentData.merchantName || paymentData.paymentType} effectué avec succès`
+    })
+  }
+}
+
 </script>
 
 <style scoped>
-.modern-nav {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+.main-content {
+  @apply min-h-screen;
+  padding-top: 56px; /* Header seulement */
+  transition: margin-left 0.3s ease-in-out;
 }
 
-.nav-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.main-with-sidebar {
+  /* Le margin-left est géré dynamiquement via computed */
 }
 
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  text-decoration: none;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 800;
-  transition: transform 0.3s;
-}
-
-.nav-logo:hover {
-  transform: scale(1.05);
-}
-
-.logo-icon {
-  font-size: 2rem;
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-}
-
-.user-greeting {
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-}
-
-.logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.logout-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-main {
-  min-height: calc(100vh - 80px);
-  transition: margin-left 0.3s ease;
-}
-
-main.with-sidebar {
-  margin-left: 0;
-}
-
-@media (min-width: 768px) {
-  main.with-sidebar {
-    margin-left: 0; /* La sidebar est en overlay, donc pas besoin de margin */
+@media (max-width: 1023px) {
+  .main-content {
+    margin-left: 0 !important; /* Pas de décalage sur mobile */
   }
 }
 </style>

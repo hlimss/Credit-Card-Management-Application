@@ -19,17 +19,21 @@ public class OAuthController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly IAuthService _authService;
     private readonly IConfiguration _configuration;
+    private readonly IAuthenticationSchemeProvider _schemeProvider;
 
-    public OAuthController(ApplicationDbContext context, IAuthService authService, IConfiguration configuration)
+    public OAuthController(ApplicationDbContext context, IAuthService authService, IConfiguration configuration, IAuthenticationSchemeProvider schemeProvider)
     {
         _context = context;
         _authService = authService;
         _configuration = configuration;
+        _schemeProvider = schemeProvider;
     }
 
     [HttpGet("google")]
     public IActionResult GoogleLogin()
     {
+        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<OAuthController>>();
+        
         // Configurer la redirection après l'authentification OAuth
         // On redirige vers notre endpoint backend qui générera le JWT
         var backendUrl = $"{Request.Scheme}://{Request.Host}";
@@ -38,7 +42,6 @@ public class OAuthController : ControllerBase
             RedirectUri = $"{backendUrl}/api/OAuth/google-callback-success"
         };
         
-        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<OAuthController>>();
         logger.LogInformation("Initiating Google OAuth login");
         
         return Challenge(properties, "Google");
@@ -47,12 +50,17 @@ public class OAuthController : ControllerBase
     [HttpGet("facebook")]
     public IActionResult FacebookLogin()
     {
+        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<OAuthController>>();
+        
         // Configurer la redirection après l'authentification OAuth
         var backendUrl = $"{Request.Scheme}://{Request.Host}";
         var properties = new AuthenticationProperties
         {
             RedirectUri = $"{backendUrl}/api/OAuth/facebook-callback-success"
         };
+        
+        logger.LogInformation("Initiating Facebook OAuth login");
+        
         return Challenge(properties, "Facebook");
     }
 
@@ -184,6 +192,7 @@ public class OAuthController : ControllerBase
         
         // Si le cookie n'a pas fonctionné, essayer directement avec Google
         logger.LogWarning("Cookie authentication failed, trying Google scheme");
+        
         var googleResult = await HttpContext.AuthenticateAsync("Google");
         logger.LogInformation("Google authentication result: {Succeeded}", googleResult.Succeeded);
         
@@ -266,6 +275,7 @@ public class OAuthController : ControllerBase
         
         // Si le cookie n'a pas fonctionné, essayer directement avec Facebook
         logger.LogWarning("Cookie authentication failed, trying Facebook scheme");
+        
         var facebookResult = await HttpContext.AuthenticateAsync("Facebook");
         if (!facebookResult.Succeeded)
         {
@@ -375,6 +385,19 @@ public class OAuthController : ControllerBase
                 Step3 = "In 'Authorized redirect URIs', add: " + redirectUrl,
                 Step4 = "Save and wait 1-2 minutes for changes to propagate"
             }
+        });
+    }
+
+    [HttpGet("status")]
+    public async Task<IActionResult> GetOAuthStatus()
+    {
+        var googleScheme = await _schemeProvider.GetSchemeAsync("Google");
+        var facebookScheme = await _schemeProvider.GetSchemeAsync("Facebook");
+        
+        return Ok(new
+        {
+            google = googleScheme != null,
+            facebook = facebookScheme != null
         });
     }
 }

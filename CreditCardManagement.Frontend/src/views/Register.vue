@@ -239,12 +239,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Token2PayLogo from '../components/Token2PayLogo.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -255,6 +256,14 @@ const lastName = ref('')
 const phoneNumber = ref('')
 const loading = ref(false)
 const error = ref('')
+
+// Vérifier les erreurs OAuth dans l'URL
+onMounted(() => {
+  if (route.query.error === 'google_auth_failed' || route.query.error === 'facebook_auth_failed') {
+    const provider = route.query.error === 'google_auth_failed' ? 'Google' : 'Facebook'
+    error.value = `${provider} authentication failed. Please try again or use email/password registration.`
+  }
+})
 
 const registerWithGoogle = () => {
   window.location.href = 'http://localhost:5000/api/oauth/google'

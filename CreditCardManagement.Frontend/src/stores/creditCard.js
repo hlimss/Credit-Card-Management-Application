@@ -30,12 +30,40 @@ export const useCreditCardStore = defineStore('creditCard', {
         this.cards.unshift(newCard)
         return { success: true, card: newCard }
       } catch (error) {
-        const errorMessage = error.response?.data?.message || 
-                           error.response?.data?.error || 
-                           error.message || 
-                           'Failed to create credit card'
+        console.error('Create card error:', error)
+        console.error('Error response:', error.response?.data)
+        
+        let errorMessage = 'Failed to create credit card'
+        
+        // Vérifier d'abord les erreurs de validation ModelState
+        if (error.response?.data) {
+          const data = error.response.data
+          
+          // Si c'est un objet ModelState avec des erreurs de validation
+          if (typeof data === 'object' && !data.message && !data.error) {
+            const errors = []
+            for (const key in data) {
+              if (Array.isArray(data[key])) {
+                errors.push(...data[key])
+              } else if (typeof data[key] === 'string') {
+                errors.push(data[key])
+              }
+            }
+            if (errors.length > 0) {
+              errorMessage = errors.join(', ')
+            }
+          } else if (data.message) {
+            errorMessage = data.message
+          } else if (data.error) {
+            errorMessage = data.error
+          } else if (typeof data === 'string') {
+            errorMessage = data
+          }
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
         this.error = errorMessage
-        console.error('Create card error:', error.response?.data || error)
         return { success: false, error: errorMessage }
       } finally {
         this.loading = false

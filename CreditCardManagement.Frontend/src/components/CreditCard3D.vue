@@ -93,8 +93,8 @@ function getCardGradient(cardType) {
 .credit-card-3d-container {
   perspective: 1000px;
   width: 100%;
-  max-width: 400px;
-  height: 250px;
+  max-width: 280px;
+  height: 175px;
   margin: 0 auto;
 }
 
@@ -114,12 +114,12 @@ function getCardGradient(cardType) {
 .card-inner {
   width: 100%;
   height: 100%;
-  border-radius: 20px;
-  padding: 30px;
+  border-radius: 14px;
+  padding: 16px;
   position: relative;
   overflow: hidden;
   box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   backdrop-filter: blur(10px);
   color: white;
@@ -129,16 +129,16 @@ function getCardGradient(cardType) {
 }
 
 .card-chip {
-  width: 50px;
-  height: 40px;
+  width: 35px;
+  height: 28px;
   background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-  border-radius: 8px;
+  border-radius: 5px;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .chip-line {
@@ -150,12 +150,12 @@ function getCardGradient(cardType) {
 }
 
 .card-number {
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 3px;
+  letter-spacing: 1.5px;
   font-family: 'Courier New', monospace;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  margin: 20px 0;
+  margin: 10px 0;
 }
 
 .card-info {
@@ -186,10 +186,10 @@ function getCardGradient(cardType) {
 
 .card-logo {
   position: absolute;
-  top: 30px;
-  right: 30px;
+  top: 16px;
+  right: 16px;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 12px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 

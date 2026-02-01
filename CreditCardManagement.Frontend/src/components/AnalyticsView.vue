@@ -104,7 +104,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useCreditCardStore } from '../stores/creditCard'
-import { transactionService } from '../services/transactionService'
+import transactionService from '../services/transactionService'
 
 const creditCardStore = useCreditCardStore()
 const transactions = ref([])

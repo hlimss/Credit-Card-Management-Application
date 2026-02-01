@@ -6,6 +6,12 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'Dashboard',
+      component: () => import('../views/Dashboard.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/cards',
       name: 'Home',
       component: () => import('../views/Home.vue'),
       meta: { requiresAuth: true }
@@ -43,6 +49,18 @@ const router = createRouter({
       path: '/analytics',
       name: 'Analytics',
       component: () => import('../components/AnalyticsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/transactions',
+      name: 'Transactions',
+      component: () => import('../views/Transactions.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/settings',
+      name: 'Settings',
+      component: () => import('../views/Settings.vue'),
       meta: { requiresAuth: true }
     }
   ]

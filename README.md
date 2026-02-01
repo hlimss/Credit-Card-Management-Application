@@ -31,7 +31,9 @@ This application provides a complete solution for credit card management with:
 - **Advanced Banking Features**: Transfers, payments, statements, loans, and analytics
 - **User Data Isolation**: Strict user-based access control ensuring data privacy
 - **Rigorous Validation**: Luhn algorithm for card numbers, expiration date validation, and comprehensive input sanitization
-- **Modern UI/UX**: Responsive design with 3D card visualization and real-time feedback
+- **Modern Governmental UI/UX**: Professional institutional design with responsive layout, sidebar navigation, and real-time notifications
+- **Transaction Security**: Confirmation code system for secure card transactions
+- **Card Management**: Activate/deactivate cards, profile management, and comprehensive transaction tracking
 
 ## ✨ Features
 
@@ -44,22 +46,26 @@ This application provides a complete solution for credit card management with:
 - ✅ **Session Management**: Secure cookie-based session handling
 
 ### 💳 Credit Card Management (CRUD)
-- ✅ **Create**: Add new credit cards with comprehensive validation
-- ✅ **Read**: View all user's credit cards with 3D visualization
-- ✅ **Update**: Edit existing credit card information
+- ✅ **Create**: Add new credit cards with comprehensive validation and confirmation codes
+- ✅ **Read**: View all user's credit cards with 3D visualization and status indicators
+- ✅ **Update**: Edit existing credit card information, including activation status
 - ✅ **Delete**: Remove credit cards with confirmation
 - ✅ **User Isolation**: Users can only access their own cards (enforced at API level)
 - ✅ **Card Categories**: Organize cards by category (Personnel, Travail, Voyage, etc.)
-- ✅ **Balance Tracking**: Monitor card balances and limits
+- ✅ **Balance Tracking**: Monitor card balances and limits with automatic updates
+- ✅ **Card Activation**: Activate/deactivate cards to control transaction permissions
+- ✅ **Confirmation Codes**: Secure transaction confirmation system per card
 - ✅ **Expiration Alerts**: Automatic notifications for expiring cards
 
 ### 💸 Banking Features
-- ✅ **Bank Transfers**: Internal, external, and international transfers
-- ✅ **Payments**: Vignettes, subscriptions, bills, and more
+- ✅ **Bank Transfers**: Internal, external, and international transfers with balance updates
+- ✅ **Payments**: Vignettes, subscriptions, bills, and more with real-time notifications
 - ✅ **Statements**: Generate detailed card statements with transaction history
-- ✅ **Loans**: Create and manage loans with payment tracking
-- ✅ **Analytics**: Comprehensive statistics, trends, and expense analysis
-- ✅ **Transactions**: Track all card transactions with automatic balance updates
+- ✅ **Loans**: Create and manage loans with payment tracking and calculations
+- ✅ **Analytics**: Comprehensive statistics, trends, and expense analysis with charts
+- ✅ **Transactions**: Dedicated transactions page with filtering, creation, and comprehensive tracking
+- ✅ **Transaction Security**: Confirmation code required for all transactions on protected cards
+- ✅ **Automatic Balance Updates**: Real-time balance deduction/addition based on transaction type
 
 ### 🔒 Security & Validation
 - ✅ **Card Number Validation**: Luhn algorithm implementation
@@ -71,14 +77,19 @@ This application provides a complete solution for credit card management with:
 - ✅ **CORS Configuration**: Properly configured for secure cross-origin requests
 
 ### 🎨 User Interface
-- ✅ **Responsive Design**: Mobile, tablet, and desktop support
-- ✅ **3D Card Visualization**: Holographic card effects with animations
-- ✅ **Real-time Validation**: Instant feedback on form inputs
+- ✅ **Governmental Design**: Professional institutional interface inspired by modern government portals
+- ✅ **Responsive Design**: Mobile-first approach with sidebar navigation and bottom navigation on mobile
+- ✅ **Institutional Sidebar**: Retractable sidebar with quick access to all features
+- ✅ **Live Currency Rates**: Real-time exchange rates ticker in header
+- ✅ **Notification System**: Global notification system with unread count and dropdown
+- ✅ **3D Card Visualization**: Holographic card effects with animations and status indicators
+- ✅ **Real-time Validation**: Instant feedback on form inputs with helpful error messages
 - ✅ **Loading States**: Visual feedback during API calls
-- ✅ **Error Handling**: User-friendly error messages
-- ✅ **Currency Converter**: Real-time exchange rates with multi-currency support
-- ✅ **Dashboard Analytics**: Statistics, charts, and trends
-- ✅ **Bank Sidebar**: Quick access to banking features and card packs
+- ✅ **Error Handling**: User-friendly error messages with context-specific tips
+- ✅ **Dashboard**: Bank of Africa-inspired dashboard with KPIs, quick actions, and analytics
+- ✅ **Dedicated Pages**: Separate pages for cards, transactions, settings, and analytics
+- ✅ **Professional Footer**: Institutional footer with links and information
+- ✅ **Settings Page**: User profile management and card activation controls
 
 ## 🛠️ Technology Stack
 
@@ -93,12 +104,13 @@ This application provides a complete solution for credit card management with:
 
 ### Frontend
 - **Vue.js 3** - Progressive JavaScript framework (Composition API)
-- **Pinia** - State management library
-- **Vue Router 4** - Client-side routing
-- **Axios** - HTTP client for API communication
+- **Pinia** - State management library (auth, credit cards, notifications)
+- **Vue Router 4** - Client-side routing with protected routes
+- **Axios** - HTTP client for API communication with interceptors
 - **Vite** - Next-generation frontend build tool
-- **Tailwind CSS** - Utility-first CSS framework
+- **Tailwind CSS** - Utility-first CSS framework with custom governmental theme
 - **Chart.js** - Data visualization (for analytics)
+- **Heroicons/Lucide** - Icon library for UI components
 
 ## 🏗️ Architecture
 
@@ -252,6 +264,7 @@ Credit Card Management Application/
 | `POST` | `/api/auth/login` | Login user |
 | `POST` | `/api/auth/logout` | Logout user |
 | `GET` | `/api/auth/me` | Get current user details |
+| `PUT` | `/api/auth/me` | Update user profile information |
 | `GET` | `/api/oauth/google` | Initiate Google OAuth |
 | `GET` | `/api/oauth/facebook` | Initiate Facebook OAuth |
 
@@ -271,7 +284,8 @@ Credit Card Management Application/
 |--------|----------|-------------|
 | `GET` | `/api/transactions` | Get all user's transactions |
 | `GET` | `/api/transactions/{id}` | Get specific transaction |
-| `POST` | `/api/transactions` | Create new transaction |
+| `POST` | `/api/transactions` | Create new transaction (requires confirmation code if card has one) |
+| `GET` | `/api/transactions/analytics` | Get transaction analytics and statistics |
 | `PUT` | `/api/transactions/{id}` | Update transaction |
 | `DELETE` | `/api/transactions/{id}` | Delete transaction |
 
@@ -339,7 +353,8 @@ Credit Card Management Application/
 - `CardType` (string)
 - `Balance` (decimal)
 - `Category` (string)
-- `IsActive` (bool)
+- `IsActive` (bool) - Card activation status
+- `ConfirmationCode` (string, nullable) - Transaction confirmation code
 - `CreatedAt`, `UpdatedAt` (DateTime)
 
 **Transactions**
@@ -351,6 +366,9 @@ Credit Card Management Application/
 - `Category` (string)
 - `TransactionType` (string: Expense, Credit, Refund)
 - `TransactionDate` (DateTime)
+- `ConfirmationCode` (string, nullable) - Confirmation code used for transaction
+- `Location` (string, nullable)
+- `Description` (string, nullable)
 
 **BankTransfers**
 - `Id` (Guid, PK)
@@ -492,11 +510,35 @@ This project demonstrates:
 - User experience design
 - Responsive web design
 
+## 🆕 Recent Updates (v2.0.0)
+
+### New Features
+- ✅ **Governmental/Institutional UI Design**: Complete redesign with professional government portal aesthetics
+- ✅ **Notification System**: Global notification system with unread count, dropdown, and persistence
+- ✅ **Transaction Confirmation Codes**: Secure transaction system requiring confirmation codes per card
+- ✅ **Card Activation/Deactivation**: Control card usage with activation toggle in settings
+- ✅ **Dedicated Transactions Page**: Comprehensive transaction management with filtering and creation
+- ✅ **Settings Page**: User profile management and card activation controls
+- ✅ **Live Currency Rates**: Real-time exchange rates ticker in header
+- ✅ **Institutional Sidebar**: Retractable sidebar with all banking features
+- ✅ **Professional Footer**: Institutional footer with links and information
+- ✅ **Enhanced Error Handling**: Improved error messages with context-specific tips
+- ✅ **Automatic Balance Updates**: Real-time balance deduction/addition based on transaction type
+- ✅ **Transaction Blocking**: Inactive cards cannot be used for transactions
+
+### UI/UX Improvements
+- Modern governmental color palette (navy blue, slate gray, off-white)
+- Responsive sidebar navigation (desktop: retractable, mobile: bottom navigation)
+- Professional header with live rates and notifications
+- Bank of Africa-inspired dashboard design
+- Improved card visualization with status indicators
+- Enhanced form validation with helpful error messages
+
 ## 📅 Project Information
 
 - **Deadline**: February 2nd, 2026
 - **Status**: ✅ Complete and Production-Ready
-- **Version**: 1.0.0
+- **Version**: 2.0.0
 
 ## 👨‍💻 Development
 

@@ -114,5 +114,73 @@ public class AuthController : ControllerBase
             PhoneNumber = user.PhoneNumber
         });
     }
+
+    [HttpPut("me")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> UpdateCurrentUser([FromBody] UpdateUserDto updateDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            if (userId == null || !Guid.TryParse(userId, out var userGuid))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users.FindAsync(userGuid);
+            
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Update user fields if provided
+            if (!string.IsNullOrEmpty(updateDto.FirstName))
+                user.FirstName = updateDto.FirstName;
+            
+            if (!string.IsNullOrEmpty(updateDto.LastName))
+                user.LastName = updateDto.LastName;
+            
+            if (!string.IsNullOrEmpty(updateDto.Email))
+            {
+                // Check if email is already taken by another user
+                var emailExists = await _context.Users
+                    .AnyAsync(u => u.Email == updateDto.Email && u.Id != userGuid);
+                
+                if (emailExists)
+                {
+                    return BadRequest(new { message = "This email is already in use by another account" });
+                }
+                
+                user.Email = updateDto.Email;
+            }
+            
+            if (updateDto.PhoneNumber != null)
+                user.PhoneNumber = updateDto.PhoneNumber;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = $"{user.FirstName} {user.LastName}",
+                PhoneNumber = user.PhoneNumber,
+                message = "User information updated successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating user information", error = ex.Message });
+        }
+    }
 }
 

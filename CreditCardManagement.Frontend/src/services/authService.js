@@ -32,6 +32,11 @@ export const authService = {
   async getCurrentUser() {
     const response = await api.get('/api/auth/me')
     return response.data
+  },
+
+  async updateProfile(profileData) {
+    const response = await api.put('/api/auth/me', profileData)
+    return response.data
   }
 }
 

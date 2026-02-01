@@ -170,86 +170,79 @@ var authBuilder = builder.Services.AddAuthentication(options =>
 })
 .AddGoogle(options =>
 {
-    if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret) && 
-        googleClientId != "YOUR_GOOGLE_CLIENT_ID" && googleClientSecret != "YOUR_GOOGLE_CLIENT_SECRET")
+    // Utiliser les credentials de la configuration, même s'ils sont des placeholders
+    // Cela permet à OAuth de se configurer et de retourner une erreur appropriée si les credentials ne sont pas valides
+    options.ClientId = googleClientId ?? "YOUR_GOOGLE_CLIENT_ID";
+    options.ClientSecret = googleClientSecret ?? "YOUR_GOOGLE_CLIENT_SECRET";
+    options.CallbackPath = "/signin-google";
+    options.SaveTokens = true;
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    
+    // Configurer les scopes Google (email et profile sont demandés par défaut, mais on les spécifie explicitement)
+    options.Scope.Add("email");
+    options.Scope.Add("profile");
+    
+    // Rediriger vers notre endpoint après que le ticket soit reçu
+    // Le cookie sera écrit par SignInScheme, puis on redirige
+    options.Events.OnTicketReceived = async context =>
     {
-        options.ClientId = googleClientId;
-        options.ClientSecret = googleClientSecret;
-        options.CallbackPath = "/signin-google";
-        options.SaveTokens = true;
-        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("OnTicketReceived called for Google OAuth - cookie will be written by SignInScheme");
         
-        // Configurer les scopes Google (email et profile sont demandés par défaut, mais on les spécifie explicitement)
-        options.Scope.Add("email");
-        options.Scope.Add("profile");
-        
-        // Rediriger vers notre endpoint après que le ticket soit reçu
-        // Le cookie sera écrit par SignInScheme, puis on redirige
-        options.Events.OnTicketReceived = async context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("OnTicketReceived called for Google OAuth - cookie will be written by SignInScheme");
-            
-            // Ne PAS utiliser HandleResponse() ici car cela empêche le cookie d'être écrit
-            // On va utiliser OnSignedIn pour rediriger après que le cookie soit écrit
-            await Task.CompletedTask;
-        };
-        
-        // Gérer les erreurs OAuth
-        options.Events.OnRemoteFailure = async context =>
-        {
-            var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError("Google OAuth failed: {Error}", context.Failure?.Message);
-            context.Response.Redirect($"{frontendUrl}/login?error=google_auth_failed");
-            context.HandleResponse();
-            await Task.CompletedTask;
-        };
-    }
-    // Si non configuré, Google OAuth ne sera pas disponible (mais ne causera pas d'erreur)
-});
-
-// Ajouter Facebook OAuth seulement si les credentials sont configurés
-if (!string.IsNullOrEmpty(facebookAppId) && !string.IsNullOrEmpty(facebookAppSecret) && 
-    facebookAppId != "YOUR_FACEBOOK_APP_ID" && facebookAppSecret != "YOUR_FACEBOOK_APP_SECRET")
+        // Ne PAS utiliser HandleResponse() ici car cela empêche le cookie d'être écrit
+        // On va utiliser OnSignedIn pour rediriger après que le cookie soit écrit
+        await Task.CompletedTask;
+    };
+    
+    // Gérer les erreurs OAuth
+    options.Events.OnRemoteFailure = async context =>
+    {
+        var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError("Google OAuth failed: {Error}", context.Failure?.Message);
+        context.Response.Redirect($"{frontendUrl}/login?error=google_auth_failed");
+        context.HandleResponse();
+        await Task.CompletedTask;
+    };
+})
+.AddFacebook(options =>
 {
-    authBuilder.AddFacebook(options =>
+    // Utiliser les credentials de la configuration, même s'ils sont des placeholders
+    // Cela permet à OAuth de se configurer et de retourner une erreur appropriée si les credentials ne sont pas valides
+    options.AppId = facebookAppId ?? "YOUR_FACEBOOK_APP_ID";
+    options.AppSecret = facebookAppSecret ?? "YOUR_FACEBOOK_APP_SECRET";
+    // Utiliser le callback path par défaut du middleware OAuth (comme pour Google)
+    options.CallbackPath = "/signin-facebook";
+    
+    // Ne PAS ajouter de scopes explicitement - Facebook utilise public_profile par défaut
+    // L'ajout explicite de scopes peut causer des erreurs si le scope n'est pas approuvé
+    // On laisse Facebook utiliser les scopes par défaut (public_profile uniquement)
+    // Si vous avez besoin de l'email, configurez-le dans le Facebook Developer Dashboard
+    // L'email sera récupéré automatiquement via les claims si la permission est approuvée
+    
+    // Sauvegarder les tokens
+    options.SaveTokens = true;
+    // Utiliser le même cookie scheme pour l'état OAuth
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    // Rediriger vers notre endpoint personnalisé après que le ticket soit reçu
+    // Ne PAS rediriger dans OnTicketReceived
+    // Laisser le middleware OAuth gérer le callback normalement
+    // Le cookie sera écrit, puis on interceptera /signin-facebook avec un endpoint
+    options.Events.OnTicketReceived = async context =>
     {
-        options.AppId = facebookAppId;
-        options.AppSecret = facebookAppSecret;
-        // Utiliser le callback path par défaut du middleware OAuth (comme pour Google)
-        options.CallbackPath = "/signin-facebook";
-        
-        // Ne PAS ajouter de scopes explicitement - Facebook utilise public_profile par défaut
-        // L'ajout explicite de scopes peut causer des erreurs si le scope n'est pas approuvé
-        // On laisse Facebook utiliser les scopes par défaut (public_profile uniquement)
-        // Si vous avez besoin de l'email, configurez-le dans le Facebook Developer Dashboard
-        // L'email sera récupéré automatiquement via les claims si la permission est approuvée
-        
-        // Sauvegarder les tokens
-        options.SaveTokens = true;
-        // Utiliser le même cookie scheme pour l'état OAuth
-        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        // Rediriger vers notre endpoint personnalisé après que le ticket soit reçu
-        // Ne PAS rediriger dans OnTicketReceived
-        // Laisser le middleware OAuth gérer le callback normalement
-        // Le cookie sera écrit, puis on interceptera /signin-facebook avec un endpoint
-        options.Events.OnTicketReceived = async context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("OnTicketReceived called for Facebook OAuth - cookie will be written by SignInScheme");
-            await Task.CompletedTask;
-        };
-        // Gérer les erreurs
-        options.Events.OnRemoteFailure = async context =>
-        {
-            var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
-            context.Response.Redirect($"{frontendUrl}/login?error=facebook_auth_failed");
-            context.HandleResponse();
-            await Task.CompletedTask;
-        };
-    });
-}
+        var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("OnTicketReceived called for Facebook OAuth - cookie will be written by SignInScheme");
+        await Task.CompletedTask;
+    };
+    // Gérer les erreurs
+    options.Events.OnRemoteFailure = async context =>
+    {
+        var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
+        context.Response.Redirect($"{frontendUrl}/login?error=facebook_auth_failed");
+        context.HandleResponse();
+        await Task.CompletedTask;
+    };
+});
 
 builder.Services.AddAuthorization();
 
@@ -503,6 +496,39 @@ static async Task CreateMissingTablesAsync(ApplicationDbContext dbContext, ILogg
             ";
             await command.ExecuteNonQueryAsync();
             logger.LogInformation("Loans table checked/created.");
+
+            // Ajouter la colonne ConfirmationCode à CreditCards si elle n'existe pas
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                               WHERE TABLE_NAME = 'CreditCards' AND COLUMN_NAME = 'ConfirmationCode')
+                BEGIN
+                    ALTER TABLE [CreditCards] ADD [ConfirmationCode] nvarchar(10) NULL;
+                END
+            ";
+            await command.ExecuteNonQueryAsync();
+            logger.LogInformation("CreditCards.ConfirmationCode column checked/added.");
+
+            // Ajouter la colonne ConfirmationCode à Transactions si elle n'existe pas
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                               WHERE TABLE_NAME = 'Transactions' AND COLUMN_NAME = 'ConfirmationCode')
+                BEGIN
+                    ALTER TABLE [Transactions] ADD [ConfirmationCode] nvarchar(10) NULL;
+                END
+            ";
+            await command.ExecuteNonQueryAsync();
+            logger.LogInformation("Transactions.ConfirmationCode column checked/added.");
+
+            // Ajouter la colonne IsActive à CreditCards si elle n'existe pas
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                               WHERE TABLE_NAME = 'CreditCards' AND COLUMN_NAME = 'IsActive')
+                BEGIN
+                    ALTER TABLE [CreditCards] ADD [IsActive] bit NOT NULL DEFAULT CAST(1 AS bit);
+                END
+            ";
+            await command.ExecuteNonQueryAsync();
+            logger.LogInformation("CreditCards.IsActive column checked/added.");
         }
         finally
         {

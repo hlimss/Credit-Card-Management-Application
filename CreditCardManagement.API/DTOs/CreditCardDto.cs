@@ -26,6 +26,7 @@ public class CreditCardDto
     public string Category { get; set; } = "Personnel";
     public string? Tags { get; set; }
     public decimal? Balance { get; set; }
+    public string? ConfirmationCode { get; set; }
     public bool IsActive { get; set; } = true;
     public int DaysUntilExpiration { get; set; }
     public bool IsExpiringSoon { get; set; }
@@ -58,6 +59,10 @@ public class CreateCreditCardDto
     
     [Range(0, 999999999.99, ErrorMessage = "Balance must be between 0 and 999999999.99")]
     public decimal? Balance { get; set; }
+
+    [Required(ErrorMessage = "Confirmation code is required")]
+    [StringLength(10, MinimumLength = 4, ErrorMessage = "Confirmation code must be between 4 and 10 characters")]
+    public string ConfirmationCode { get; set; } = string.Empty;
 }
 
 public class UpdateCreditCardDto
@@ -81,6 +86,9 @@ public class UpdateCreditCardDto
     
     [Range(0, 999999999.99, ErrorMessage = "Balance must be between 0 and 999999999.99")]
     public decimal? Balance { get; set; }
+
+    [StringLength(10, MinimumLength = 4, ErrorMessage = "Confirmation code must be between 4 and 10 characters")]
+    public string? ConfirmationCode { get; set; }
     
     public bool? IsActive { get; set; }
 }

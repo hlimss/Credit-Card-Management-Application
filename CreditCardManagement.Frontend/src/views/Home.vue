@@ -1,22 +1,23 @@
 <template>
   <div class="modern-dashboard min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50">
-    <!-- Header -->
-    <div class="dashboard-header">
-      <div class="header-content">
-        <h1 class="dashboard-title">💳 Credit Card Manager</h1>
-        <button
-          @click="showModal = true; editingCard = null"
-          class="add-card-btn"
-        >
-          <span class="btn-icon">+</span>
-          <span>Add Card</span>
-        </button>
-      </div>
-    </div>
-
     <div class="dashboard-container">
-      <!-- Currency Rates Ticker -->
-      <CurrencyTicker />
+
+      <!-- Page Header with Add Button -->
+      <div v-if="!creditCardStore.loading" class="page-header-section mb-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h1 class="page-title text-3xl font-bold text-gray-900 mb-2">💳 Mes Cartes Bancaires</h1>
+            <p class="page-subtitle text-gray-600">Gérez toutes vos cartes bancaires en un seul endroit</p>
+          </div>
+          <button
+            @click="showModal = true; editingCard = null"
+            class="add-card-header-btn"
+          >
+            <span class="add-card-icon">➕</span>
+            <span>Ajouter une carte</span>
+          </button>
+        </div>
+      </div>
 
       <!-- Dashboard Stats -->
       <DashboardStats v-if="!creditCardStore.loading && creditCardStore.cards.length > 0" />
@@ -51,6 +52,12 @@
           :style="{ 'animation-delay': `${index * 0.1}s` }"
         >
           <div class="card-container-3d">
+            <!-- Card Status Badge -->
+            <div class="card-status-badge" :class="card.isActive ? 'status-active' : 'status-inactive'">
+              <span class="status-icon">{{ card.isActive ? '✓' : '✗' }}</span>
+              <span class="status-text">{{ card.isActive ? 'Active' : 'Inactive' }}</span>
+            </div>
+            
             <CreditCard3D
               :card-number="card.cardNumber"
               :cardholder-name="card.cardholderName"
@@ -85,10 +92,12 @@
               <button
                 @click="openAddExpenseModal(card.id)"
                 class="action-btn add-expense-btn"
-                title="Add Expense"
+                :class="{ 'disabled': !card.isActive }"
+                :disabled="!card.isActive"
+                :title="card.isActive ? 'Add Expense' : 'Carte inactive - Impossible d\'ajouter une transaction'"
               >
                 <span>💸</span>
-                <span class="tooltip">Add Expense</span>
+                <span class="tooltip">{{ card.isActive ? 'Add Expense' : 'Carte inactive' }}</span>
               </button>
               <button
                 @click="deleteCard(card.id)"
@@ -135,11 +144,22 @@
         </div>
 
         <form @submit.prevent="handleSubmit" class="modal-form">
-          <!-- Error Display -->
-          <div v-if="submitError" class="form-error">
-            <span class="error-icon">⚠️</span>
-            <span>{{ submitError }}</span>
+      <!-- Error Display -->
+      <div v-if="submitError" class="form-error">
+        <div class="flex items-start gap-3">
+          <span class="error-icon">⚠️</span>
+          <div class="flex-1">
+            <div class="font-semibold text-red-800 mb-1">Erreur de validation</div>
+            <div class="text-red-700 text-sm">{{ submitError }}</div>
+            <div v-if="submitError.includes('card number') || submitError.includes('numéro de carte')" class="mt-2 text-xs text-red-600">
+              💡 Astuce : Utilisez un numéro de carte de test valide comme <code class="bg-red-100 px-1 rounded">4111 1111 1111 1111</code> (Visa) ou <code class="bg-red-100 px-1 rounded">5555 5555 5555 4444</code> (MasterCard)
+            </div>
+            <div v-if="submitError.includes('expiration') || submitError.includes('expiration')" class="mt-2 text-xs text-red-600">
+              💡 Le format doit être MM/YY (ex: 12/25 pour décembre 2025)
+            </div>
           </div>
+        </div>
+      </div>
 
           <!-- Card Preview -->
           <div v-if="form.cardNumber" class="card-preview">
@@ -266,6 +286,22 @@
               <p class="form-hint">Le montant sera envoyé par WhatsApp après l'ajout de la carte</p>
             </div>
 
+            <div class="form-group full-width">
+              <label class="form-label">
+                <span class="label-icon">🔐</span>
+                Code de confirmation *
+              </label>
+              <input
+                v-model="form.confirmationCode"
+                type="text"
+                placeholder="Code de sécurité pour les transactions (ex: 1234)"
+                maxlength="10"
+                class="form-input"
+                required
+              />
+              <p class="form-hint">Ce code sera demandé lors de chaque transaction</p>
+            </div>
+
             <div v-if="editingCard" class="form-group full-width">
               <label class="form-label">
                 <span class="label-icon">🔒</span>
@@ -364,11 +400,11 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useCreditCardStore } from '../stores/creditCard'
+import { useNotificationStore } from '../stores/notification'
 import { validateCardNumber, validateExpirationDate, validateCVV, detectCardType, formatCardNumber } from '../utils/validation'
 import CreditCard3D from '../components/CreditCard3D.vue'
 import DashboardStats from '../components/DashboardStats.vue'
 import CardFilters from '../components/CardFilters.vue'
-import CurrencyTicker from '../components/CurrencyTicker.vue'
 import CardExpensesView from '../components/CardExpensesView.vue'
 import AddExpenseModal from '../components/AddExpenseModal.vue'
 import AdvancedDashboard from '../components/AdvancedDashboard.vue'
@@ -376,6 +412,7 @@ import ExpirationAlerts from '../components/ExpirationAlerts.vue'
 import { format } from 'date-fns'
 
 const creditCardStore = useCreditCardStore()
+const notificationStore = useNotificationStore()
 
 const showModal = ref(false)
 const editingCard = ref(null)
@@ -396,6 +433,7 @@ const form = ref({
   category: 'Personnel',
   tags: '',
   balance: null,
+  confirmationCode: '',
   isActive: true
 })
 
@@ -537,6 +575,7 @@ const editCard = (card) => {
     category: card.category || 'Personnel',
     tags: card.tags || '',
     balance: card.balance || null,
+    confirmationCode: card.confirmationCode || '',
     isActive: card.isActive !== undefined ? card.isActive : true
   }
   showModal.value = true
@@ -551,6 +590,14 @@ const viewCardExpenses = (cardId) => {
 }
 
 const openAddExpenseModal = (cardId) => {
+  const card = creditCardStore.cards.find(c => c.id === cardId)
+  if (!card) return
+  
+  if (!card.isActive) {
+    alert('⚠️ Cette carte est inactive. Veuillez l\'activer dans les paramètres pour effectuer des transactions.')
+    return
+  }
+  
   selectedCardForExpense.value = cardId
   showAddExpenseModal.value = true
 }
@@ -560,9 +607,28 @@ const closeAddExpenseModal = () => {
   selectedCardForExpense.value = null
 }
 
-const handleExpenseAdded = () => {
+const handleExpenseAdded = (expenseData) => {
   // Refresh cards to update balance if needed
   creditCardStore.fetchCards()
+  
+  // Ajouter une notification
+  const card = creditCardStore.cards.find(c => c.id === selectedCardForExpense.value)
+  if (card && expenseData) {
+    const formatAmount = (amount, currency) => {
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currency || 'MAD'
+      }).format(amount)
+    }
+    
+    notificationStore.addNotification({
+      type: 'success',
+      icon: '💸',
+      title: 'Dépense ajoutée',
+      message: `Dépense de ${formatAmount(expenseData.amount, expenseData.currency)} ajoutée à la carte ${card.cardholderName}`
+    })
+  }
+  
   // Optionally refresh expenses view if open
   if (selectedCardForExpenses.value) {
     // Trigger a refresh by closing and reopening
@@ -585,6 +651,7 @@ const closeModal = () => {
     category: 'Personnel',
     tags: '',
     balance: null,
+    confirmationCode: '',
     isActive: true
   }
   cardNumberError.value = ''
@@ -599,6 +666,13 @@ const handleSubmit = async () => {
   submitting.value = true
   submitError.value = ''
 
+  // Validation supplémentaire côté client
+  if (!form.value.confirmationCode || form.value.confirmationCode.trim().length < 4) {
+    submitError.value = 'Le code de confirmation est requis (minimum 4 caractères)'
+    submitting.value = false
+    return
+  }
+
   const cardData = {
     cardNumber: form.value.cardNumber.replace(/\s/g, ''),
     cardholderName: form.value.cardholderName,
@@ -606,39 +680,133 @@ const handleSubmit = async () => {
     cvv: form.value.cvv,
     category: form.value.category,
     tags: form.value.tags || undefined,
-    balance: form.value.balance ? parseFloat(form.value.balance) : undefined
+    balance: form.value.balance ? parseFloat(form.value.balance) : undefined,
+    confirmationCode: form.value.confirmationCode.trim()
   }
   
   if (editingCard.value) {
     cardData.isActive = form.value.isActive
   }
 
-  let result
-  if (editingCard.value) {
-    result = await creditCardStore.updateCard(editingCard.value.id, cardData)
-  } else {
-    result = await creditCardStore.createCard(cardData)
-  }
+  try {
+    let result
+    if (editingCard.value) {
+      result = await creditCardStore.updateCard(editingCard.value.id, cardData)
+    } else {
+      result = await creditCardStore.createCard(cardData)
+    }
 
-  submitting.value = false
+    submitting.value = false
 
-  if (result.success) {
+    if (result.success) {
+    // Ajouter une notification
+    if (editingCard.value) {
+      notificationStore.addNotification({
+        type: 'success',
+        icon: '✏️',
+        title: 'Carte modifiée',
+        message: `La carte ${form.value.cardholderName} a été modifiée avec succès`
+      })
+    } else {
+      notificationStore.addNotification({
+        type: 'success',
+        icon: '💳',
+        title: 'Carte ajoutée',
+        message: `La carte ${form.value.cardholderName} (${detectedCardType.value}) a été ajoutée avec succès`
+      })
+    }
+    
     closeModal()
     await creditCardStore.fetchCards()
   } else {
     submitError.value = result.error || 'An error occurred'
     console.error('Credit card error:', result.error)
+    
+    // Notification d'erreur
+    notificationStore.addNotification({
+      type: 'error',
+      icon: '⚠️',
+      title: 'Erreur',
+      message: result.error || 'Une erreur est survenue lors de l\'opération'
+    })
+    }
+  } catch (error) {
+    submitting.value = false
+    console.error('Error submitting card:', error)
+    console.error('Error response:', error.response?.data)
+    
+    // Extraire le message d'erreur détaillé
+    let errorMessage = 'Une erreur est survenue lors de l\'opération'
+    
+    // Vérifier d'abord les erreurs de validation ModelState
+    if (error.response?.data) {
+      const data = error.response.data
+      
+      // Si c'est un objet ModelState avec des erreurs de validation
+      if (typeof data === 'object' && !data.message && !data.error) {
+        const errors = []
+        for (const key in data) {
+          if (Array.isArray(data[key])) {
+            errors.push(...data[key])
+          } else if (typeof data[key] === 'string') {
+            errors.push(data[key])
+          }
+        }
+        if (errors.length > 0) {
+          errorMessage = errors.join(', ')
+        }
+      } else if (data.message) {
+        errorMessage = data.message
+      } else if (data.error) {
+        errorMessage = data.error
+      } else if (typeof data === 'string') {
+        errorMessage = data
+      }
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    submitError.value = errorMessage
+    
+    // Notification d'erreur
+    notificationStore.addNotification({
+      type: 'error',
+      icon: '⚠️',
+      title: 'Erreur lors de l\'ajout de la carte',
+      message: errorMessage
+    })
   }
 }
 
 const deleteCard = async (id) => {
-  if (!confirm('Are you sure you want to delete this credit card?')) {
+  const card = creditCardStore.cards.find(c => c.id === id)
+  if (!card) return
+  
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette carte bancaire ?')) {
     return
   }
 
   const result = await creditCardStore.deleteCard(id)
-  if (!result.success) {
+  if (result.success) {
+    // Ajouter une notification
+    notificationStore.addNotification({
+      type: 'info',
+      icon: '🗑️',
+      title: 'Carte supprimée',
+      message: `La carte ${card.cardholderName} a été supprimée`
+    })
+    
+    await creditCardStore.fetchCards()
+  } else {
     alert(result.error || 'Failed to delete credit card')
+    
+    // Notification d'erreur
+    notificationStore.addNotification({
+      type: 'error',
+      icon: '⚠️',
+      title: 'Erreur',
+      message: result.error || 'Impossible de supprimer la carte'
+    })
   }
 }
 
@@ -694,6 +862,28 @@ const formatDate = (dateString) => {
   font-size: 1.1rem;
 }
 
+.page-header-section {
+  @apply mb-6 px-4 sm:px-6 lg:px-8 pt-8;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.page-subtitle {
+  @apply text-gray-600;
+}
+
+.add-card-header-btn {
+  @apply flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg
+         hover:bg-blue-700 transition-colors font-semibold shadow-md
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.add-card-icon {
+  @apply text-xl;
+}
+
 .add-card-btn {
   display: flex;
   align-items: center;
@@ -724,6 +914,28 @@ const formatDate = (dateString) => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.page-header-section {
+  @apply mb-6;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-gray-900 mb-2;
+}
+
+.page-subtitle {
+  @apply text-gray-600;
+}
+
+.add-card-header-btn {
+  @apply flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg
+         hover:bg-blue-700 transition-colors font-semibold shadow-md
+         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.add-card-icon {
+  @apply text-xl;
 }
 
 .cards-grid {
@@ -758,6 +970,42 @@ const formatDate = (dateString) => {
   transition: all 0.3s;
 }
 
+.card-status-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-status-badge.status-active {
+  background: #10b981;
+  color: white;
+}
+
+.card-status-badge.status-inactive {
+  background: #ef4444;
+  color: white;
+}
+
+.status-icon {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.status-text {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .card-container-3d:hover {
   transform: translateY(-8px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -781,6 +1029,12 @@ const formatDate = (dateString) => {
   cursor: pointer;
   transition: all 0.3s;
   font-size: 1.2rem;
+}
+
+.action-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .action-btn:hover {

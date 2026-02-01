@@ -79,6 +79,7 @@ public class CreditCardService : ICreditCardService
             Category = createDto.Category ?? "Personnel",
             Tags = createDto.Tags,
             Balance = createDto.Balance,
+            ConfirmationCode = createDto.ConfirmationCode,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -114,28 +115,29 @@ public class CreditCardService : ICreditCardService
         if (card == null)
             throw new KeyNotFoundException("Credit card not found");
 
-        // Validate card number
-        if (!_validationService.ValidateCardNumber(updateDto.CardNumber))
-        {
-            throw new ArgumentException("Invalid card number");
-        }
-
-        // Validate expiration date
-        if (!_validationService.ValidateExpirationDate(updateDto.ExpirationDate))
-        {
-            throw new ArgumentException("Invalid or expired expiration date");
-        }
-
-        // Update card
+        // Validate card number only if it's being updated
         if (!string.IsNullOrEmpty(updateDto.CardNumber))
         {
-            card.CardNumber = Encrypt(updateDto.CardNumber);
-            card.CardType = _validationService.DetectCardType(updateDto.CardNumber);
+            var cleanedCardNumber = updateDto.CardNumber.Replace(" ", "").Replace("-", "");
+            if (!_validationService.ValidateCardNumber(cleanedCardNumber))
+            {
+                throw new ArgumentException("Invalid card number. The card number does not pass the Luhn algorithm validation.");
+            }
+            card.CardNumber = Encrypt(cleanedCardNumber);
+            card.CardType = _validationService.DetectCardType(cleanedCardNumber);
+        }
+
+        // Validate expiration date only if it's being updated
+        if (!string.IsNullOrEmpty(updateDto.ExpirationDate))
+        {
+            if (!_validationService.ValidateExpirationDate(updateDto.ExpirationDate))
+            {
+                throw new ArgumentException("Invalid or expired expiration date");
+            }
+            card.ExpirationDate = updateDto.ExpirationDate;
         }
         if (!string.IsNullOrEmpty(updateDto.CardholderName))
             card.CardholderName = updateDto.CardholderName;
-        if (!string.IsNullOrEmpty(updateDto.ExpirationDate))
-            card.ExpirationDate = updateDto.ExpirationDate;
         if (!string.IsNullOrEmpty(updateDto.CVV))
             card.CVV = Encrypt(updateDto.CVV);
         if (!string.IsNullOrEmpty(updateDto.Category))
@@ -144,6 +146,8 @@ public class CreditCardService : ICreditCardService
             card.Tags = updateDto.Tags;
         if (updateDto.Balance.HasValue)
             card.Balance = updateDto.Balance.Value;
+        if (!string.IsNullOrEmpty(updateDto.ConfirmationCode))
+            card.ConfirmationCode = updateDto.ConfirmationCode;
         if (updateDto.IsActive.HasValue)
             card.IsActive = updateDto.IsActive.Value;
         card.UpdatedAt = DateTime.UtcNow;
@@ -183,6 +187,7 @@ public class CreditCardService : ICreditCardService
             Category = card.Category,
             Tags = card.Tags,
             Balance = card.Balance,
+            ConfirmationCode = card.ConfirmationCode,
             IsActive = card.IsActive,
             DaysUntilExpiration = expirationInfo.DaysUntilExpiration,
             IsExpiringSoon = expirationInfo.IsExpiringSoon,

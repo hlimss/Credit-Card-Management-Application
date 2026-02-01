@@ -112,35 +112,37 @@ onUnmounted(() => {
 .currency-ticker-container {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
 }
 
 .ticker-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   color: white;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .ticker-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .ticker-wrapper {
   flex: 1;
   overflow: hidden;
   position: relative;
-  height: 40px;
+  height: 32px;
 }
 
 .ticker-content {
@@ -166,10 +168,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   color: white;
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.85rem;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
   white-space: nowrap;
   flex-shrink: 0;
   backdrop-filter: blur(10px);
@@ -188,7 +190,7 @@ onUnmounted(() => {
 
 .ticker-code {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .ticker-rate {
@@ -198,17 +200,17 @@ onUnmounted(() => {
 }
 
 .ticker-refresh {
-  padding: 0.5rem;
+  padding: 0.35rem;
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: 6px;
   color: white;
   cursor: pointer;
   transition: all 0.3s;
-  font-size: 1rem;
+  font-size: 0.85rem;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;

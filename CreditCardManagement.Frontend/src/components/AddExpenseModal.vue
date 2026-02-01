@@ -144,6 +144,24 @@
           </select>
         </div>
 
+        <!-- Confirmation Code -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-icon">🔐</span>
+            Code de confirmation de la carte *
+          </label>
+          <input
+            v-model="formData.confirmationCode"
+            type="text"
+            class="form-input-3d"
+            placeholder="Entrez le code de confirmation"
+            required
+            maxlength="10"
+            autocomplete="off"
+          />
+          <p class="form-hint">Code de sécurité configuré pour cette carte</p>
+        </div>
+
         <!-- Action Buttons -->
         <div class="form-actions">
           <button type="button" @click="close" class="btn-cancel">
@@ -192,7 +210,8 @@ const formData = ref({
   description: '',
   transactionDate: new Date().toISOString().slice(0, 16),
   location: '',
-  currency: 'USD'
+  currency: 'USD',
+  confirmationCode: ''
 })
 
 watch(() => props.show, (newVal) => {
@@ -205,7 +224,8 @@ watch(() => props.show, (newVal) => {
       description: '',
       transactionDate: new Date().toISOString().slice(0, 16),
       location: '',
-      currency: 'USD'
+      currency: 'USD',
+      confirmationCode: ''
     }
     error.value = ''
   }
@@ -222,7 +242,12 @@ const handleSubmit = async () => {
   error.value = ''
   
   if (!formData.value.merchantName || !formData.value.amount || formData.value.amount <= 0) {
-    error.value = 'Please fill in all required fields'
+    error.value = 'Veuillez remplir tous les champs obligatoires'
+    return
+  }
+
+  if (!formData.value.confirmationCode || formData.value.confirmationCode.trim().length < 4) {
+    error.value = 'Le code de confirmation est requis (minimum 4 caractères)'
     return
   }
 
@@ -238,16 +263,18 @@ const handleSubmit = async () => {
       transactionDate: new Date(formData.value.transactionDate).toISOString(),
       location: formData.value.location || null,
       currency: formData.value.currency,
-      transactionType: 'Expense'
+      transactionType: 'Expense',
+      confirmationCode: formData.value.confirmationCode.trim()
     }
 
     await transactionService.createTransaction(transactionData)
     
-    emit('expense-added')
+    emit('expense-added', transactionData)
     close()
   } catch (err) {
     console.error('Error creating expense:', err)
-    error.value = err.response?.data?.message || 'Failed to add expense. Please try again.'
+    const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Échec de l\'ajout de la dépense. Veuillez réessayer.'
+    error.value = errorMessage
   } finally {
     loading.value = false
   }
@@ -417,6 +444,12 @@ const close = () => {
   font-size: 1rem;
   transition: all 0.3s;
   background: white;
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
 
 .form-input-3d:focus {

@@ -25,6 +25,24 @@ public class TransactionService : ITransactionService
             throw new UnauthorizedAccessException("Credit card not found or access denied");
         }
 
+        // Vérifier si la carte est active
+        if (!card.IsActive)
+        {
+            throw new InvalidOperationException("Cette carte est inactive. Veuillez l'activer dans les paramètres pour effectuer des transactions.");
+        }
+
+        // Vérifier le code de confirmation
+        if (string.IsNullOrEmpty(card.ConfirmationCode))
+        {
+            throw new InvalidOperationException("Aucun code de confirmation n'est configuré pour cette carte. Veuillez configurer un code dans les paramètres de la carte.");
+        }
+
+        if (string.IsNullOrEmpty(createDto.ConfirmationCode) || 
+            !string.Equals(card.ConfirmationCode.Trim(), createDto.ConfirmationCode.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Code de confirmation incorrect. Veuillez vérifier le code et réessayer.");
+        }
+
         // Si c'est une dépense (Expense), déduire le montant de la balance de la carte
         if (createDto.TransactionType == "Expense" && createDto.Amount > 0)
         {
@@ -70,6 +88,7 @@ public class TransactionService : ITransactionService
             TransactionDate = createDto.TransactionDate,
             TransactionType = createDto.TransactionType,
             Location = createDto.Location,
+            ConfirmationCode = createDto.ConfirmationCode,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -357,6 +376,7 @@ public class TransactionService : ITransactionService
             TransactionDate = transaction.TransactionDate,
             TransactionType = transaction.TransactionType,
             Location = transaction.Location,
+            ConfirmationCode = transaction.ConfirmationCode,
             CreatedAt = transaction.CreatedAt
         };
     }
